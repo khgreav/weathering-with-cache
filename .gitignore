@@ -1,0 +1,7 @@
+.mvn
+.vscode
+.env
+.env.dev
+build
+coverage
+target
