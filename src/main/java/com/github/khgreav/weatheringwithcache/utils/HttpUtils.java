@@ -15,6 +15,9 @@ public final class HttpUtils {
 
     public static HashMap<String, String> getQueryParamsMap(String params) {
         var map = new HashMap<String, String>();
+        if (params == null || params.length() == 0) {
+            return map;
+        }
         int start = 0;
         int n = params.length();
         while (start < n) {

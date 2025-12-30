@@ -23,7 +23,7 @@ public class TokenBucket {
     }
 
     public final void setTokenCount(int tokenCount) {
-        this.tokenCount = tokenCount;
+        this.tokenCount = Math.min(tokenCount, CAPACITY);
     }
 
     public final long getLastRefill() {

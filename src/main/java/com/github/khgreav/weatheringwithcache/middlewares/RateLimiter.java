@@ -28,7 +28,7 @@ public class RateLimiter {
 
         // refill tokens if regenerated
         if (newTokens > 0) {
-            bucket.setTokenCount(Math.min(bucket.getTokenCount() + newTokens, TokenBucket.CAPACITY));
+            bucket.setTokenCount(bucket.getTokenCount() + newTokens);
             bucket.setLastRefill(now);
         }
 
