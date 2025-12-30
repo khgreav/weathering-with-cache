@@ -9,14 +9,17 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
 import java.time.Duration;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.khgreav.weatheringwithcache.exceptions.ContentTypeException;
 import com.github.khgreav.weatheringwithcache.exceptions.GenericException;
 import com.github.khgreav.weatheringwithcache.exceptions.InvalidApiKeyException;
 import com.github.khgreav.weatheringwithcache.exceptions.LocationNotFoundException;
 import com.github.khgreav.weatheringwithcache.exceptions.MalformedUpstreamDataException;
 import com.github.khgreav.weatheringwithcache.exceptions.UsageLimitedException;
+import com.github.khgreav.weatheringwithcache.utils.DateTimeUtils;
 import com.github.khgreav.weatheringwithcache.utils.Env;
-import com.github.khgreav.weatheringwithcache.utils.JsonValidator;
 
 public class WeatherService {
 
@@ -26,11 +29,19 @@ public class WeatherService {
 
     private final HttpClient client;
 
+    private final RedisService cacheService;
+
     public WeatherService() {
         this.client = HttpClient.newHttpClient();
+        this.cacheService = new RedisService();
     }
 
     public String getToday(String location) throws HttpTimeoutException, IOException, InterruptedException, URISyntaxException {
+
+        var cached = this.cacheService.getValue(location);
+        if (cached != null) {
+            return cached;
+        }
 
         var key = Env.get("VISUAL_CROSSING_API_KEY");
         if (key == null || key.length() == 0) {
@@ -56,10 +67,18 @@ public class WeatherService {
         switch (response.statusCode()) {
             case 200 -> {
                 var body = response.body();
-                if (JsonValidator.isValidJson(body)) {
+                try {
+                    JsonNode json = new ObjectMapper().readTree(body);
+                    String timezone = json.get("timezone").asText();
+                    if (timezone == null || timezone.length() == 0) {
+                        throw new MalformedUpstreamDataException();
+                    }
+                    long ttl = DateTimeUtils.getTodayLastSecondEpoch(body);
+                    this.cacheService.setValue(location, body, ttl);
                     return body;
+                } catch (JsonProcessingException e) {
+                    throw new MalformedUpstreamDataException(e);
                 }
-                throw new MalformedUpstreamDataException();
             }
             case 400 -> throw new IllegalArgumentException();
             case 401 -> throw new InvalidApiKeyException();
