@@ -26,11 +26,8 @@ public class WeatherService {
 
     private final HttpClient client;
 
-    private final WeatherCacheService cacheService;
-
     public WeatherService() {
         this.client = HttpClient.newHttpClient();
-        this.cacheService = new WeatherCacheService();
     }
 
     public String getToday(String location) throws HttpTimeoutException, IOException, InterruptedException, URISyntaxException {

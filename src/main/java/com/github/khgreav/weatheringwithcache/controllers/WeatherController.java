@@ -20,7 +20,6 @@ public class WeatherController {
     private WeatherService service;
 
     public WeatherController(HttpServer server) {
-        server.createContext("/weather", this::fetchWeather);
         this.service = new WeatherService();
     }
 
