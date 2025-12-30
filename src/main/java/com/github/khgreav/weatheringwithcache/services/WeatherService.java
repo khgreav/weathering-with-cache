@@ -7,6 +7,7 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.net.http.HttpTimeoutException;
+import java.time.DateTimeException;
 import java.time.Duration;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
@@ -75,10 +76,10 @@ public class WeatherService {
                     if (timezone == null || timezone.length() == 0) {
                         throw new MalformedUpstreamDataException();
                     }
-                    long ttl = DateTimeUtils.getTodayLastSecondEpoch(body);
+                    long ttl = DateTimeUtils.getTodayLastSecondEpoch(timezone);
                     this.cacheService.setValue(location, body, ttl);
                     return body;
-                } catch (JsonProcessingException e) {
+                } catch (DateTimeException | JsonProcessingException e) {
                     throw new MalformedUpstreamDataException(e);
                 }
             }

@@ -22,16 +22,28 @@ public class RedisService {
         pool.setTestOnBorrow(true);
         pool.setTestWhileIdle(true);
         this.client = RedisClient.builder()
-            .hostAndPort(Env.get("REDIS_HOST"), Integer.parseInt(Env.get("REDIS_PORT")))
+            .hostAndPort(
+                Env.get("REDIS_HOST"),
+                Integer.parseInt(Env.get("REDIS_PORT"))
+            )
             .poolConfig(pool)
             .build();
     }
 
     public String getValue(String key) {
-        return client.get(key);
+        try {
+            return client.get(key);
+        } catch (Exception e) {
+           System.err.println(e.getMessage());
+        }
+        return null;
     }
 
     public void setValue(String key, String value, long ttl) {
-        client.set(key, value, SetParams.setParams().ex(ttl));
+        try {
+            client.set(key, value, SetParams.setParams().ex(ttl));
+        } catch (Exception e) {
+            System.err.println(e.getMessage());
+        }
     }
 }
