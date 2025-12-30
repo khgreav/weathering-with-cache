@@ -27,6 +27,8 @@ public class WeatherService {
 
     private static final int TIMEOUT = 5;
 
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper().findAndRegisterModules();
+
     private final HttpClient client;
 
     private final RedisService cacheService;
@@ -68,7 +70,7 @@ public class WeatherService {
             case 200 -> {
                 var body = response.body();
                 try {
-                    JsonNode json = new ObjectMapper().readTree(body);
+                    JsonNode json = OBJECT_MAPPER.readTree(body);
                     String timezone = json.get("timezone").asText();
                     if (timezone == null || timezone.length() == 0) {
                         throw new MalformedUpstreamDataException();
