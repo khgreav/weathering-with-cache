@@ -2,6 +2,9 @@ package com.github.khgreav.weatheringwithcache.services;
 
 import java.time.Duration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.khgreav.weatheringwithcache.utils.Env;
 
 import redis.clients.jedis.ConnectionPoolConfig;
@@ -9,6 +12,8 @@ import redis.clients.jedis.RedisClient;
 import redis.clients.jedis.params.SetParams;
 
 public class RedisService {
+
+    private final Logger logger = LoggerFactory.getLogger(RedisService.class);
 
     private RedisClient client;
 
@@ -34,7 +39,7 @@ public class RedisService {
         try {
             return client.get(key);
         } catch (Exception e) {
-           System.err.println(e.getMessage());
+           logger.warn("Unable to get data from cache: '{}'.", e.getMessage());
         }
         return null;
     }
@@ -43,7 +48,7 @@ public class RedisService {
         try {
             client.set(key, value, SetParams.setParams().ex(ttl));
         } catch (Exception e) {
-            System.err.println(e.getMessage());
+            logger.warn("Unable to store data in cache: '{}'.", e.getMessage());
         }
     }
 }

@@ -2,6 +2,9 @@ package com.github.khgreav.weatheringwithcache;
 
 import java.net.InetSocketAddress;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.github.khgreav.weatheringwithcache.controllers.WeatherController;
 import com.github.khgreav.weatheringwithcache.middlewares.RateLimitFilter;
 import com.github.khgreav.weatheringwithcache.middlewares.RateLimiter;
@@ -15,7 +18,8 @@ import com.sun.net.httpserver.HttpServer;
 public class App {
 
     public static void main( String[] args ) {
-        
+        Logger logger = LoggerFactory.getLogger(App.class);
+
         try {
             // Load env file
             Env.initialize();
@@ -32,13 +36,13 @@ public class App {
                 .add(rateLimitFilter);
             // Register SIGTERM handler
             Runtime.getRuntime().addShutdownHook(new Thread(() -> {
-                System.out.println("Received shutdown signal, shutting down...");
+                logger.info(("Received shutdown signal, shutting down..."));
                 server.stop(0);
             }));
             // Start server
             server.start();
         } catch (Exception e) {
-            e.printStackTrace();
+            logger.error("A fatal error has occurred:", e);
         }
     }
 }

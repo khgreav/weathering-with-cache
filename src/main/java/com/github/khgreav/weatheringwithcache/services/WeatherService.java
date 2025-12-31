@@ -10,6 +10,9 @@ import java.net.http.HttpTimeoutException;
 import java.time.DateTimeException;
 import java.time.Duration;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,6 +26,8 @@ import com.github.khgreav.weatheringwithcache.utils.DateTimeUtils;
 import com.github.khgreav.weatheringwithcache.utils.Env;
 
 public class WeatherService {
+
+    private final Logger logger = LoggerFactory.getLogger(WeatherService.class);
 
     private static final String BASE_URL = "https://weather.visualcrossing.com/VisualCrossingWebServices/rest/services/timeline/";
 
@@ -43,11 +48,14 @@ public class WeatherService {
 
         var cached = this.cacheService.getValue(location);
         if (cached != null) {
+            logger.info("Cache hit for location '{}'.", location);
             return cached;
         }
+        logger.warn("Cache miss for location '{}'.", location);
 
         var key = Env.get("VISUAL_CROSSING_API_KEY");
         if (key == null || key.length() == 0) {
+            logger.error("Weather API key missing.");
             throw new InvalidApiKeyException();
         }
 
@@ -80,16 +88,39 @@ public class WeatherService {
                     this.cacheService.setValue(location, body, ttl);
                     return body;
                 } catch (DateTimeException | JsonProcessingException e) {
+                    logger.error("Failed to response from weather API service:", e);
                     throw new MalformedUpstreamDataException(e);
                 }
             }
-            case 400 -> throw new IllegalArgumentException();
-            case 401 -> throw new InvalidApiKeyException();
-            case 403 -> throw new UsageLimitedException();
-            case 404 -> throw new LocationNotFoundException();
-            case 406 -> throw new ContentTypeException();
-            case 429 -> throw new UsageLimitedException();
-            default -> throw new GenericException();
+            case 400 -> {
+                logger.warn("The weather API service did not accept location format: '{}'.", location);
+                throw new IllegalArgumentException();
+            }
+            case 401 -> {
+                logger.error("The weather API did not accept API key.");
+                throw new InvalidApiKeyException();
+            }
+            case 403 -> {
+                logger.warn("The weather API did refused to process request due to access: '{}'.", response.body());
+                throw new UsageLimitedException();
+            }
+            case 404 -> {
+                logger.warn("The weather API could not find location: '{}'.", location);
+                throw new LocationNotFoundException();
+            }
+            case 406 -> {
+                logger.warn("The weather API cannot provide application/json response.");
+                throw new ContentTypeException();
+            }
+            case 429 -> {
+                // TODO: check for retry headers?
+                logger.warn("The weather API refused to process request due to rate limiting.");
+                throw new UsageLimitedException();
+            }
+            default -> {
+                logger.error("An unexpected error has occurred when contacting weather API: status code '{}', reason '{}'.", response.statusCode(), response.body());
+                throw new GenericException();
+            }
         }
     }
 }
